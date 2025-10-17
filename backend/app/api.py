@@ -36,7 +36,7 @@ async def get_passengers(
   parch: Optional[int] = Query(None, ge=0, description="Filter by number of parents/children"),
   embarked: Optional[Embarked] = Query(None, description="Filter by port of embarkation"),
   page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-  page_size: int = Query(100, ge=1, le=1000, description="Results per page")
+  page_size: int = Query(100, ge=1, le=100, description="Results per page")
 ) -> Dict[str, Any]:
   
   filtered_df = df

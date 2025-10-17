@@ -28,7 +28,8 @@ async def get_passengers(
   sibsp: Optional[int] = Query(None, ge=0, description="Filter by number of siblings/spouses"),
   parch: Optional[int] = Query(None, ge=0, description="Filter by number of parents/children"),
   embarked: Optional[Embarked] = Query(None, description="Filter by port of embarkation"),
-  limit: int = Query(100, ge=1, le=1000, description="Max results to return")
+  page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+  page_size: int = Query(100, ge=1, le=1000, description="Results per page")
 ) -> Dict[str, Any]:
   
   filtered_df = df
@@ -46,10 +47,17 @@ async def get_passengers(
   if embarked is not None:
       filtered_df = filtered_df.filter(pl.col("Embarked") == embarked.value)
 
+  # Pagination
+  total_count = filtered_df.height
+  total_pages = (total_count + page_size - 1) // page_size
+  offset = (page - 1) * page_size
+  result_df = filtered_df.slice(offset, page_size)
 
-  result_df = filtered_df.head(limit)
   return {
-    "count": filtered_df.height,
+    "count": total_count,
+    "page": page,
+    "page_size": page_size,
+    "total_pages": total_pages,
     "returned": result_df.height,
     "passengers": result_df.to_dicts()
   }

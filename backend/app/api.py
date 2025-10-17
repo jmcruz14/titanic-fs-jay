@@ -1,8 +1,9 @@
 import polars as pl
 from pathlib import Path
 from typing import Dict, List, Optional, Annotated, Any
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request, HTTPException, status
 
+from .api_utils import limiter
 from .models import PassengerSex, Pclass, Embarked
 
 DATA_PATH = Path(__file__).parent.parent / "data" / "titanic.csv"
@@ -11,17 +12,23 @@ df = pl.read_csv(DATA_PATH)
 router = APIRouter()
 
 @router.get("/passenger/{passenger_id}")
-async def get_individual_passenger(passenger_id: int = 1):
+@limiter.limit("10/minute")
+async def get_individual_passenger(request: Request, passenger_id: int = 1):
   """Get a single passenger by PassengerId"""
   passenger = df.filter(pl.col("PassengerId") == passenger_id)
     
   if passenger.height == 0: 
-      return {"error": "Passenger not found"}
-  
+      raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Passenger not found"
+        )
+
   return passenger.row(0, named=True)
 
 @router.get("/passengers")
+@limiter.limit("10/minute")
 async def get_passengers(
+  request: Request,
   survived: Annotated[int | None, Query(ge=0, le=1, description="Filter by survival status")] = None,
   sex: Optional[PassengerSex] = Query(None, description="Filter by gender"),
   pclass: Optional[Pclass] = Query(None, description="Filter by passenger class (1, 2, or 3)"),
@@ -63,7 +70,8 @@ async def get_passengers(
   }
 
 @router.get("/passengers/summary")
-def get_summary() -> Dict:
+@limiter.limit("10/minute")
+def get_summary(request: Request) -> Dict:
     return {
         "total_passengers": df.height,
         "survived": int(df["Survived"].sum()),

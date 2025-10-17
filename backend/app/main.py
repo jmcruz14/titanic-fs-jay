@@ -9,6 +9,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from .api_utils import limiter
 
 from .api import router
+from .import_csv import csv_router
 
 app = FastAPI(
   title="TitanicAPI",
@@ -30,6 +31,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 app.include_router(router)
+app.include_router(csv_router)
 
 @app.get('/health', tags=['system'])
 @limiter.limit("5/minute")

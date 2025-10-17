@@ -1,49 +1,71 @@
 networks:
-    titanic-network:
-      driver: bridge
+  titanic-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+
 services:
-  backend:
-    build: ./backend  # Uses backend/Dockerfile
-    # environment:
-    #   - DATABASE_URL=postgresql://titanic:titanic@db:5432/titanicdb
+  titanicdb:
+    image: postgres:14-alpine
+    container_name: titanic-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: titanic
+      POSTGRES_PASSWORD: titanic
+      POSTGRES_DB: titanicdb
+      TZ: Asia/Taipei
     ports:
-      - "8000:8000" # map host port 8000 to container port 8000
+      - "5432:5432"
     networks:
       - titanic-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U titanic"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  titanic-redis:
+    image: redis:alpine
+    container_name: titanic-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      TZ: Asia/Taipei
+    networks:
+      - titanic-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: titanic-backend
+    environment:
+      - DATABASE_URL=postgresql://titanic:titanic@titanicdb:5432/titanicdb
+      - REDIS_URL=redis://titanic-redis:6379
+    ports:
+      - "8000:8000"
+    networks:
+      - titanic-network
+    depends_on:
+      titanicdb:
+        condition: service_healthy
+      titanic-redis:
+        condition: service_healthy
     
   frontend:
-    build: ./frontend  # Uses frontend/Dockerfile
+    build: ./frontend
+    container_name: titanic-frontend
     ports:
       - "5173:5173"
     networks:
       - titanic-network
-
-
-  # db:
-  #   image: postgres:14-alpine
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data/
-  #   environment:
-  #     POSTGRES_USER: titanic
-  #     POSTGRES_PASSWORD: titanic
-  #     POSTGRES_DB: titanicdb
-  #     TZ: Asia/Taipei
-  #   ports:
-  #     - "5432:5432"
-  #   networks:
-  #     - titanic_network
-
-  # titanic-redis:
-  #   image: "redis:alpine"
-  #   ports:
-  #   - "6379:6379"
-  #   volumes:
-  #   - redis_data:/data
-  #   environment:
-  #   - TZ: Asia/Taipei
-  #   networks:
-  #     - titanic_network
-
-  # networks:
-  #   titanic_network:
-  #     driver: bridge
+    depends_on:
+      - backend

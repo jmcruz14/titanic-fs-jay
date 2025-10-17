@@ -1,8 +1,49 @@
+networks:
+    titanic-network:
+      driver: bridge
 services:
   backend:
     build: ./backend  # Uses backend/Dockerfile
+    # environment:
+    #   - DATABASE_URL=postgresql://titanic:titanic@db:5432/titanicdb
     ports:
       - "8000:8000" # map host port 8000 to container port 8000
+    networks:
+      - titanic-network
     
-  # frontend:
-  #   build: ./frontend  # Uses frontend/Dockerfile
+  frontend:
+    build: ./frontend  # Uses frontend/Dockerfile
+    ports:
+      - "5173:5173"
+    networks:
+      - titanic-network
+
+
+  # db:
+  #   image: postgres:14-alpine
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data/
+  #   environment:
+  #     POSTGRES_USER: titanic
+  #     POSTGRES_PASSWORD: titanic
+  #     POSTGRES_DB: titanicdb
+  #     TZ: Asia/Taipei
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - titanic_network
+
+  # titanic-redis:
+  #   image: "redis:alpine"
+  #   ports:
+  #   - "6379:6379"
+  #   volumes:
+  #   - redis_data:/data
+  #   environment:
+  #   - TZ: Asia/Taipei
+  #   networks:
+  #     - titanic_network
+
+  # networks:
+  #   titanic_network:
+  #     driver: bridge

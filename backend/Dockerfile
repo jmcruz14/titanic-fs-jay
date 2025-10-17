@@ -2,13 +2,11 @@ FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 WORKDIR /app
 # Copy dependency files
 COPY pyproject.toml uv.lock* ./
-
 # Sync dependencies using uv
 RUN uv sync --frozen --no-dev
-
 # Copy application code
 COPY app ./app
-
+COPY data ./data
 EXPOSE 8000
 
 # Run using uv's managed environment

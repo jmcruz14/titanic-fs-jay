@@ -12,17 +12,18 @@ services:
     container_name: titanic-db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+      - ./backend/init-db:/docker-entrypoint-initdb.d/  # Mount init scripts
     environment:
       POSTGRES_USER: titanic
       POSTGRES_PASSWORD: titanic
-      POSTGRES_DB: titanicdb
+      POSTGRES_DB: titanicdb  # This creates the DB on first run
       TZ: Asia/Taipei
     ports:
       - "5432:5432"
     networks:
       - titanic-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U titanic"]
+      test: ["CMD-SHELL", "pg_isready -U titanic -d titanicdb"]
       interval: 10s
       timeout: 5s
       retries: 5
